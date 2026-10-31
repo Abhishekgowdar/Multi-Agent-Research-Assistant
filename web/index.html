@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 'unsafe-inline' stays until inline onclick handlers move into a script file -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>AI Research Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e90ff;
+            --primary-hover: #4da6ff;
+            --bg-dark: #121212;
+            --bg-card: #181818;
+            --bg-hover: #282828;
+            --text-light: #ffffff;
+            --text-gray: #b3b3b3;
+            --text-muted: #666666;
+            --border: #282828;
+            --success: #1db954;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header with History Button */
+        .header {
+            text-align: center;
+            padding: 60px 32px;
+            margin-bottom: 32px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--text-light);
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .history-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-light);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .history-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: var(--bg-hover);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        /* Export Buttons */
+        .export-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 10px 20px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-light);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .export-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-size: 15px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--bg-card);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .sources-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .checkbox-label:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary);
+        }
+
+        .checkbox-label input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-label input:checked + span {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Button */
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: scale(1.02);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+
+        .progress-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .progress-item.completed {
+            border-left-color: var(--success);
+            background: rgba(29, 185, 84, 0.1);
+        }
+
+        .progress-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(30, 144, 255, 0.3);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-dark);
+            padding: 28px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary);
+            transform: translateY(-4px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .content-block {
+            margin-bottom: 32px;
+        }
+
+        .content-block h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .review-content {
+            background: var(--bg-dark);
+            padding: 32px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            line-height: 1.8;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .review-content h1,
+        .review-content h2,
+        .review-content h3 {
+            color: var(--primary);
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .review-content h1 { font-size: 1.8rem; }
+        .review-content h2 { font-size: 1.5rem; }
+        .review-content h3 { font-size: 1.3rem; }
+
+        .review-content p {
+            margin-bottom: 16px;
+        }
+
+        .review-content strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .review-content ul,
+        .review-content ol {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .papers-list {
+            background: var(--bg-dark);
+            padding: 32px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .paper-item {
+            padding: 24px;
+            background: var(--bg-card);
+            margin-bottom: 16px;
+            border-radius: 12px;
+            border-left: 3px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .paper-item:hover {
+            background: var(--bg-hover);
+            transform: translateX(8px);
+        }
+
+        .paper-title {
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-light);
+            font-size: 1.05rem;
+            line-height: 1.5;
+        }
+
+        .paper-authors {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .paper-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .paper-link:hover {
+            color: var(--primary-hover);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 8px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-light);
+        }
+
+        .history-item {
+            padding: 20px;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border-left: 3px solid var(--primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: var(--bg-hover);
+            transform: translateX(4px);
+        }
+
+        .history-title {
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .history-meta {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-bottom: 8px;
+        }
+
+        .history-preview {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .delete-btn {
+            padding: 6px 12px;
+            background: var(--error, #dc2626);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .card {
+                padding: 24px;
+            }
+            .sources-group {
+                grid-template-columns: 1fr;
+            }
+            .history-btn {
+                position: static;
+                display: block;
+                margin: 16px auto 0;
+                width: fit-content;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with History Button -->
+        <div class="header">
+            <button class="history-btn" onclick="showHistory()">📚 View History</button>
+            <h1>🤖 AI Research Assistant</h1>
+            <p>Multi-Agent System for Academic Literature Review</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-section card">
+            <div class="section-title">
+                🔍 Start Your Research
+            </div>
+            <form id="researchForm">
+                <div class="form-group">
+                    <label for="query">Research Query</label>
+                    <input
+                        type="text"
+                        id="query"
+                        placeholder="e.g., machine learning in healthcare"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="maxPapers">Maximum Papers</label>
+                    <input
+                        type="number"
+                        id="maxPapers"
+                        value="5"
+                        min="1"
+                        max="20"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label>Data Sources (Select Multiple)</label>
+                    <div class="sources-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="google_scholar" checked>
+                            <span>🎓 Google Scholar</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="ieee" checked>
+                            <span>🔧 IEEE Xplore</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="arxiv">
+                            <span>📄 arXiv</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="pubmed">
+                            <span>🏥 PubMed</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="semantic_scholar">
+                            <span>🔍 Semantic Scholar</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="core">
+                            <span>📖 CORE</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="crossref">
+                            <span>📚 CrossRef</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="biorxiv">
+                            <span>🧬 bioRxiv</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="source" value="plos">
+                            <span>🔬 PLOS ONE</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    🚀 Start Research
+                </button>
+            </form>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section card" id="progressSection">
+            <div class="section-title">⚡ Research Progress</div>
+            <div id="progressList"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section card" id="resultsSection">
+            <div class="section-title">
+                ✨ Research Results
+                <div class="export-buttons" id="exportButtons" style="display: none;">
+                    <button class="export-btn" onclick="exportMarkdown()">📥 Markdown</button>
+                    <button class="export-btn" onclick="exportHTML()">📥 HTML</button>
+                    <button class="export-btn" onclick="exportJSON()">📥 JSON</button>
+                    <button class="export-btn" onclick="showCitationExport()">📚 Citations</button>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="content-block">
+                <h3>📚 Literature Review</h3>
+                <div class="review-content" id="reviewContent"></div>
+            </div>
+
+            <div class="content-block">
+                <h3>🌟 Must-Read Papers</h3>
+                <div class="papers-list" id="papersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeHistory()">&times;</button>
+            <h2 style="margin-bottom: 24px;">📚 Search History</h2>
+
+            <div id="historyStats" style="background: var(--bg-dark); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                Loading statistics...
+            </div>
+
+            <div id="historyList">
+                Loading history...
+            </div>
+
+            <button class="export-btn" onclick="clearAllHistory()" style="margin-top: 16px; background: #dc2626;">
+                🗑️ Clear All History
+            </button>
+        </div>
+    </div>
+
+    <!-- Citation Export Modal -->
+    <div class="modal" id="citationModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeCitationExport()">&times;</button>
+            <h2 style="margin-bottom: 24px;">📚 Export Citations</h2>
+
+            <div class="export-buttons">
+                <button class="export-btn" onclick="exportCitations('bibtex')">📄 BibTeX</button>
+                <button class="export-btn" onclick="exportCitations('apa')">📋 APA</button>
+                <button class="export-btn" onclick="exportCitations('mla')">📝 MLA</button>
+                <button class="export-btn" onclick="exportCitations('chicago')">📖 Chicago</button>
+            </div>
+
+            <textarea id="citationOutput" readonly style="width: 100%; min-height: 300px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; margin-top: 16px;"></textarea>
+
+            <button class="export-btn" onclick="copyCitations()" style="margin-top: 16px;">
+                📋 Copy to Clipboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Escape HTML to prevent XSS from paper titles/authors
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str ?? '';
+            return d.innerHTML;
+        }
+        // Sanitize URLs - only allow http/https
+        function safeUrl(url) {
+            try {
+                const u = new URL(url);
+                return (u.protocol === 'http:' || u.protocol === 'https:') ? u.href : '#';
+            } catch { return '#'; }
+        }
+
+        const form = document.getElementById('researchForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressList = document.getElementById('progressList');
+        const resultsSection = document.getElementById('resultsSection');
+        const statsGrid = document.getElementById('statsGrid');
+        const reviewContent = document.getElementById('reviewContent');
+        const papersList = document.getElementById('papersList');
+        const exportButtons = document.getElementById('exportButtons');
+
+        let ws = null;
+        let progressItems = new Map();
+        let currentResult = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            startResearch();
+        });
+
+        function startResearch() {
+            const query = document.getElementById('query').value;
+            const maxPapers = Math.min(Math.max(parseInt(document.getElementById('maxPapers').value) || 5, 1), 20);
+            const sources = Array.from(document.querySelectorAll('input[name="source"]:checked'))
+                .map(cb => cb.value);
+
+            if (!query || sources.length === 0) {
+                alert('Please enter a query and select at least one data source');
+                return;
+            }
+
+            progressList.innerHTML = '';
+            progressItems.clear();
+            resultsSection.classList.remove('active');
+            exportButtons.style.display = 'none';
+            progressSection.classList.add('active');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Researching...';
+
+            connectWebSocket(query, maxPapers, sources);
+        }
+
+        function connectWebSocket(query, maxPapers, sources) {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                ws.send(JSON.stringify({
+                    type: 'research',
+                    query: query,
+                    max_papers: maxPapers,
+                    sources: sources
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addProgress('error', '❌ Connection error', true);
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Start Research';
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'start':
+                    addProgress('start', `🚀 ${data.message}: ${data.query}`);
+                    break;
+
+                case 'progress':
+                    const message = data.message.toLowerCase();
+                    let phaseKey = 'general';
+                    let isComplete = false;
+
+                    if (message.includes('searching') || message.includes('searcher')) {
+                        phaseKey = 'searching';
+                        isComplete = message.includes('found');
+                    } else if (message.includes('analyzing') || message.includes('analyzer')) {
+                        phaseKey = 'analyzing';
+                        isComplete = message.includes('analyzed');
+                    } else if (message.includes('verifying') || message.includes('fact_checker')) {
+                        phaseKey = 'verifying';
+                        isComplete = message.includes('verified');
+                    } else if (message.includes('generating') || message.includes('synthesizer') || message.includes('literature')) {
+                        phaseKey = 'generating';
+                        isComplete = message.includes('generated');
+                    }
+
+                    addProgress(phaseKey, `► ${data.message}`, isComplete);
+                    break;
+
+                case 'complete':
+                    markAllComplete();
+                    currentResult = data.result;
+                    if (data.result && data.result.status !== 'error' && data.result.status !== 'no_results') {
+                        displayResults(data.result);
+                        exportButtons.style.display = 'flex';
+                    } else {
+                        addProgress('error', `⚠️ ${data.result?.message || 'Research returned no results'}`, true);
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Start Research';
+                    break;
+
+                case 'error':
+                    addProgress('error', `❌ Error: ${data.message}`, true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Start Research';
+                    break;
+            }
+        }
+
+        function addProgress(key, message, isComplete = false) {
+            if (progressItems.has(key)) {
+                const existingItem = progressItems.get(key);
+                existingItem.querySelector('span').textContent = message;
+
+                if (isComplete && !existingItem.classList.contains('completed')) {
+                    existingItem.classList.add('completed');
+                    existingItem.querySelector('.progress-icon').innerHTML = '<div class="checkmark">✓</div>';
+                }
+            } else {
+                const item = document.createElement('div');
+                item.className = isComplete ? 'progress-item completed' : 'progress-item';
+                item.innerHTML = `
+                    <div class="progress-icon">
+                        ${isComplete ? '<div class="checkmark">✓</div>' : '<div class="spinner"></div>'}
+                    </div>
+                    <span>${esc(message)}</span>
+                `;
+                progressList.appendChild(item);
+                progressItems.set(key, item);
+            }
+
+            progressList.scrollTop = progressList.scrollHeight;
+        }
+
+        function markAllComplete() {
+            progressItems.forEach(item => {
+                if (!item.classList.contains('completed')) {
+                    item.classList.add('completed');
+                    const icon = item.querySelector('.progress-icon');
+                    if (icon) {
+                        icon.innerHTML = '<div class="checkmark">✓</div>';
+                    }
+                }
+            });
+        }
+
+        function displayResults(result) {
+            resultsSection.classList.add('active');
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${result.papers_found || 0}</div>
+                    <div class="stat-label">Papers Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${result.papers_analyzed || 0}</div>
+                    <div class="stat-label">Papers Analyzed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round((result.metadata?.average_confidence || 0) * 100)}%</div>
+                    <div class="stat-label">Confidence</div>
+                </div>
+            `;
+
+            if (result.literature_review) {
+                const rawHtml = marked.parse(result.literature_review);
+                reviewContent.innerHTML = window.DOMPurify
+                    ? DOMPurify.sanitize(rawHtml)
+                    : esc(result.literature_review).replace(/\n/g, '<br>');
+            } else {
+                reviewContent.textContent = 'No review generated';
+            }
+
+            if (result.must_read_papers && result.must_read_papers.length > 0) {
+                papersList.innerHTML = result.must_read_papers.map((paper, index) => `
+                    <div class="paper-item">
+                        <div class="paper-title">${index + 1}. ${esc(paper.title)}</div>
+                        <div class="paper-authors">${esc(paper.authors?.join(', ') || 'Unknown')} (${esc(paper.year || 'N/A')})</div>
+                        <a href="${safeUrl(paper.url)}" target="_blank" rel="noopener" class="paper-link">
+                            📄 View Paper →
+                        </a>
+                    </div>
+                `).join('');
+            } else {
+                papersList.innerHTML = '<p style="color: var(--text-gray)">No papers available</p>';
+            }
+
+            setTimeout(() => {
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+
+        // Export Functions
+        async function exportMarkdown() {
+            if (!currentResult) return;
+
+            try {
+                const response = await fetch('/api/export/markdown', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentResult)
+                });
+
+                const markdown = await response.text();
+                downloadFile(markdown, `research_${Date.now()}.md`, 'text/markdown');
+                alert('✅ Exported as Markdown!');
+            } catch (error) {
+                alert('❌ Export failed: ' + error.message);
+            }
+        }
+
+        async function exportHTML() {
+            if (!currentResult) return;
+
+            try {
+                const response = await fetch('/api/export/html', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentResult)
+                });
+
+                const html = await response.text();
+                downloadFile(html, `research_${Date.now()}.html`, 'text/html');
+                alert('✅ Exported as HTML!');
+            } catch (error) {
+                alert('❌ Export failed: ' + error.message);
+            }
+        }
+
+        async function exportJSON() {
+            if (!currentResult) return;
+
+            try {
+                const response = await fetch('/api/export/json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentResult)
+                });
+
+                const json = await response.text();
+                downloadFile(json, `research_${Date.now()}.json`, 'application/json');
+                alert('✅ Exported as JSON!');
+            } catch (error) {
+                alert('❌ Export failed: ' + error.message);
+            }
+        }
+
+        function showCitationExport() {
+            document.getElementById('citationModal').classList.add('active');
+        }
+
+        function closeCitationExport() {
+            document.getElementById('citationModal').classList.remove('active');
+        }
+
+        async function exportCitations(format) {
+            if (!currentResult || !currentResult.must_read_papers) return;
+
+            try {
+                const response = await fetch(`/api/export/citations/${format}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentResult.must_read_papers)
+                });
+
+                const citations = await response.text();
+                document.getElementById('citationOutput').value = citations;
+            } catch (error) {
+                alert('❌ Export failed: ' + error.message);
+            }
+        }
+
+        function copyCitations() {
+            const textarea = document.getElementById('citationOutput');
+            textarea.select();
+            document.execCommand('copy');
+            alert('✅ Copied to clipboard!');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // History Functions
+        async function showHistory() {
+            document.getElementById('historyModal').classList.add('active');
+            loadHistory();
+        }
+
+        function closeHistory() {
+            document.getElementById('historyModal').classList.remove('active');
+        }
+
+        async function loadHistory() {
+            try {
+                // Load stats
+                const statsResponse = await fetch('/api/history/stats');
+                const stats = await statsResponse.json();
+
+                document.getElementById('historyStats').innerHTML = `
+                    <h3 style="margin-bottom: 16px;">📊 Statistics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                        <div><strong>${stats.total_searches}</strong><br><span style="color: var(--text-gray);">Total Searches</span></div>
+                        <div><strong>${stats.total_papers_found}</strong><br><span style="color: var(--text-gray);">Papers Found</span></div>
+                        <div><strong>${stats.total_papers_analyzed}</strong><br><span style="color: var(--text-gray);">Papers Analyzed</span></div>
+                        <div><strong>${Math.round(stats.average_confidence * 100)}%</strong><br><span style="color: var(--text-gray);">Avg Confidence</span></div>
+                    </div>
+                `;
+
+                // Load history
+                const historyResponse = await fetch('/api/history?limit=20');
+                const historyData = await historyResponse.json();
+
+                if (historyData.history.length === 0) {
+                    document.getElementById('historyList').innerHTML = '<p style="color: var(--text-gray);">No search history yet</p>';
+                    return;
+                }
+
+                document.getElementById('historyList').innerHTML = historyData.history.map(item => `
+                    <div class="history-item">
+                        <div class="history-title">${esc(item.query)}</div>
+                        <div class="history-meta">
+                            📅 ${new Date(item.timestamp).toLocaleString()} |
+                            📄 ${item.papers_found} found |
+                            📊 ${item.papers_analyzed} analyzed |
+                            ⭐ ${Math.round(item.confidence * 100)}% confidence
+                        </div>
+                        <div class="history-preview">${esc(item.literature_review_preview)}</div>
+                        <button class="delete-btn" onclick="deleteHistory(${item.id}, event)">🗑️ Delete</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                alert('❌ Failed to load history: ' + error.message);
+            }
+        }
+
+        async function deleteHistory(id, event) {
+            event.stopPropagation();
+
+            if (!confirm('Delete this search from history?')) return;
+
+            try {
+                await fetch(`/api/history/${id}`, { method: 'DELETE' });
+                loadHistory();
+            } catch (error) {
+                alert('❌ Delete failed: ' + error.message);
+            }
+        }
+
+        async function clearAllHistory() {
+            if (!confirm('Clear ALL search history? This cannot be undone!')) return;
+
+            try {
+                await fetch('/api/history', { method: 'DELETE' });
+                loadHistory();
+                alert('✅ History cleared!');
+            } catch (error) {
+                alert('❌ Clear failed: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

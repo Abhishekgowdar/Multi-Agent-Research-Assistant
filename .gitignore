@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Environment variables
+.env
+.env.local
+
+# Data files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints
+
+# ChromaDB
+chroma_db/
+
+# Node modules (for web UI)
+node_modules/
+web/node_modules/
+web/build/
+web/dist/
+
+# Test scripts that print API keys
+test_groq.py
+list_groq_models.py
+list_models.py
+final_test.py
+test_setup.py
+test_fixes.py
+
+# Backup/generated HTML
+web/index_backup.html
+web/index_enhanced.html
+
+# Dev docs (not needed in repo)
+BUG_FIXES.md
+RATE_LIMIT_FIX.md
+FINAL_FIXES.md
+NEW_DATA_SOURCES_SUMMARY.md
+ENHANCEMENT_SUMMARY.md
+UI_ENHANCEMENTS_GUIDE.md

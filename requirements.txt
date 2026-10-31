@@ -1,0 +1,42 @@
+# AI/LLM
+google-generativeai==0.3.2
+groq==0.4.1
+chromadb==0.4.22
+
+# APIs & Data Sources
+arxiv==2.1.0
+biopython==1.83  # For PubMed
+requests==2.31.0
+beautifulsoup4==4.12.3  # For Google Scholar scraping
+lxml==5.1.0  # HTML parser for BeautifulSoup
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+websockets==12.0
+
+# Database & Storage
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+
+# Utilities
+python-dotenv==1.0.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+tenacity==8.2.3  # Retry logic
+loguru==0.7.2  # Better logging
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.3
+
+# CLI
+click==8.1.7
+rich==13.7.0  # Beautiful terminal output
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+
+# Optional: For PDF processing
+pypdf2==3.0.1

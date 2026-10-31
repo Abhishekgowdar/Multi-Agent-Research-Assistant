@@ -1,0 +1,77 @@
+# Multi-Agent Research Assistant Configuration
+
+# Agent Settings
+agents:
+  searcher:
+    model: "gemini-1.5-flash"  # Maps to gemini-flash-latest (always works)
+    max_retries: 3
+    timeout: 30
+
+  analyzer:
+    model: "gemini-1.5-flash"
+    max_retries: 3
+    timeout: 60
+    max_papers_to_analyze: 15
+
+  fact_checker:
+    model: "gemini-1.5-flash"
+    max_retries: 3
+    timeout: 45
+
+  synthesizer:
+    model: "gemini-1.5-flash"
+    max_retries: 3
+    timeout: 90
+
+# Data Sources
+data_sources:
+  arxiv:
+    enabled: true
+    max_results: 50
+    sort_by: "relevance"  # relevance, lastUpdatedDate, submittedDate
+
+  pubmed:
+    enabled: true
+    max_results: 50
+    database: "pubmed"
+
+  semantic_scholar:
+    enabled: true
+    max_results: 50
+    fields: "title,abstract,authors,year,citationCount,venue,paperId,url"
+
+# Memory Configuration
+memory:
+  vector_db:
+    type: "chromadb"
+    path: "./data/chroma_db"
+    collection_name: "research_papers"
+
+  cache:
+    enabled: true
+    type: "sqlite"
+    path: "./data/cache.db"
+    ttl_hours: 168  # 7 days
+
+# Search Settings
+search:
+  min_relevance_score: 0.6
+  deduplicate: true
+  prefer_recent: true
+  recent_years: 3  # Papers from last 3 years preferred
+
+# Output Settings
+output:
+  formats: ["markdown", "json", "pdf"]
+  include_citations: true
+  include_summaries: true
+  max_summary_length: 5000
+
+# Rate Limiting (to stay within free tiers)
+rate_limits:
+  gemini_requests_per_minute: 15
+  groq_output_tokens_per_minute: 1000
+  groq_reserve_tokens_per_call: 800  # Lower this if 429s do not occur; actual usage is settled after each call
+  arxiv_requests_per_second: 3
+  pubmed_requests_per_second: 3
+  semantic_scholar_requests_per_second: 10
